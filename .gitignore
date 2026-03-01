@@ -1,0 +1,14 @@
+.cache/*
+.idea/*
+eln-cache/*
+.idea
+.cache
+elpa/*
+elpaca/*
+eln-cache
+elpa
+elpaca
+ede-projects.el
+projectile-bookmarks.eld
+tramp
+
