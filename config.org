@@ -5,19 +5,27 @@ Performance & Fundamentals
 As an HPC dev, we want Emacs to stay out of the way. We increase the garbage collection threshold for better responsiveness during LSP indexing.
 
 #+begin_src elisp
-(setq gc-cons-threshold (* 100 1024 1024)) ; 100MB
-(setq read-process-output-max (* 1024 1024)) ; 1MB (crucial for LSP)
+(setq read-process-output-max (* 3 1024 1024)) ; 3MB (Better for huge C++ LSP responses)
 (setq create-lockfiles nil) ; Stop creating .#files (breaks some makefiles)
+
+;; Garbage Collector Magic Hack
+;; Automatically adjusts GC threshold: high when idle, low when active.
+(use-package gcmh
+  :ensure t
+  :hook (after-init . gcmh-mode)
+  :config
+  (setq gcmh-high-cons-threshold (* 512 1024 1024) ; 512MB when idle
+        gcmh-idle-delay 0.8))
 #+end_src
 
 Visuals & UI
 A clean, high-contrast dark theme for long nights debugging MPI deadlocks.
 
 #+begin_src elisp
-(use-package doom-themes
+(use-package base16-theme
 :ensure t
 :config
-(load-theme 'doom-one t))
+(load-theme 'base16-gigavolt t))
 
 (use-package doom-modeline
 :ensure t
@@ -38,7 +46,7 @@ A clean, high-contrast dark theme for long nights debugging MPI deadlocks.
   :ensure nil
   :hook (prog-mode . display-fill-column-indicator-mode)
   :config
-  (setq-default display-fill-column-indicator-column 80))
+  (setq-default display-fill-column-indicator-column 100))
 
 ;; Tabs (VSCode/Eclipse style)
 (use-package centaur-tabs
@@ -474,6 +482,35 @@ completion-category-overrides '((file (styles partial-completion)))))
 
 (use-package consult
 :ensure t)
+
+;; In-buffer completion (Corfu)
+;; This provides the "IntelliSense" popup as you type.
+(use-package corfu
+  :ensure t
+  :init
+  (global-corfu-mode)
+  :config
+  (setq corfu-auto t                 ;; Enable auto completion
+        corfu-auto-delay 0.0         ;; Instant appearance
+        corfu-auto-prefix 1          ;; Show after 1 character
+        corfu-cycle t                ;; Enable cycling
+        corfu-preselect 'first       ;; Always select the first candidate
+        corfu-quit-no-match 'separator)
+  
+  ;; Popup documentation (Parameter hints & docs)
+  (corfu-popupinfo-mode 1)
+  (setq corfu-popupinfo-delay '(0.5 . 0.2))
+
+  ;; Bind TAB to insert the selected candidate
+  (define-key corfu-map (kbd "TAB") 'corfu-insert)
+  (define-key corfu-map (kbd "<tab>") 'corfu-insert))
+
+;; Icons for completion (VSCode-like)
+(use-package kind-icon
+  :ensure t
+  :after corfu
+  :config
+  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
 #+end_src
 
 Reloading the Config

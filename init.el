@@ -1,5 +1,8 @@
 ;;; init.el --- Robust Bootstrap Loader for HPC Emacs -*- lexical-binding: t; -*-
 
+;; Maximize GC threshold during startup to speed up loading
+(setq gc-cons-threshold most-positive-fixnum)
+
 ;; Prevent UI flickering during startup
 (setq-default frame-inhibit-implied-resize t)
 (setq inhibit-startup-screen t)
@@ -58,7 +61,9 @@
            (format "%.2f seconds"
                    (float-time
                     (time-subtract after-init-time before-init-time)))
-           gcs-done))
+           gcs-done)
+  ;; Reset GC threshold to a reasonable value (20MB) after startup
+  (setq gc-cons-threshold (* 20 1024 1024)))
 (add-hook 'emacs-startup-hook #'my/display-startup-time)
 
 (let ((conf-org (expand-file-name "config.org" user-emacs-directory))
