@@ -42,7 +42,7 @@
   :demand
   :config
   (centaur-tabs-mode t)
-  (setq centaur-tabs-style "bar"
+  (setq centaur-tabs-style "rounded"
         centaur-tabs-height 32
         centaur-tabs-set-icons t
         centaur-tabs-set-modified-marker t
@@ -54,6 +54,10 @@
   (with-eval-after-load 'evil
     (define-key evil-normal-state-map (kbd "g t") 'centaur-tabs-forward)
     (define-key evil-normal-state-map (kbd "g T") 'centaur-tabs-backward))
+  (custom-set-faces
+   ;; Make X bigger and yellow on tabs for closing
+   '(centaur-tabs-close-selected ((t :height 1.3 :weight bold :foreground "red")))
+   '(centaur-tabs-close-unselected ((t :height 1.3 :weight medium italic :foreground "yellow"))))
 
   ;; Custom Context Menu Logic for Tabs
   (defun my/centaur-tabs-kill-on-side (direction)
