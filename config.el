@@ -21,6 +21,13 @@
   :if window-system
   :config (good-scroll-mode 1))
 
+;; Fill Column Indicator (Vertical Line at 100 chars)
+(use-package display-fill-column-indicator
+  :ensure nil
+  :hook (prog-mode . display-fill-column-indicator-mode)
+  :config
+  (setq-default display-fill-column-indicator-column 80))
+
 ;; Tabs (VSCode/Eclipse style)
 (use-package centaur-tabs
   :ensure t
@@ -67,6 +74,15 @@
   ;; Bind right-click on header line to the context menu
   (global-set-key [header-line mouse-3] 'my/centaur-tabs-context-menu))
 
+;; Configure popup windows (compilation, help, etc.) to close on 'q'
+(add-to-list 'display-buffer-alist
+             '("\\*\\(Flymake\\|Flycheck\\|Compile-Log\\|Warnings\\|Help\\|compilation\\|Backtrace\\|Eglot\\).*"
+               (display-buffer-reuse-window display-buffer-in-side-window)
+               (side . bottom)
+               (slot . 0)
+               (window-height . 0.25)
+               (window-parameters . ((dedicated . t) (no-other-window . t)))))
+
 ;; Context Menu (Right-Click)
 (use-package emacs
   :init
@@ -95,6 +111,8 @@
     'edit)
   (define-key global-map [menu-bar view treemacs]
     '(menu-item "Project Explorer" treemacs :help "Toggle File Tree"))
+  (define-key global-map [menu-bar view toggle-wrap]
+    '(menu-item "Toggle Word Wrap" visual-line-mode :help "Wrap long lines"))
 
   (define-key-after global-map [menu-bar preferences]
     (cons "Preferences" (make-sparse-keymap "Preferences"))
@@ -226,6 +244,60 @@
   (my/leader-keys
     "o" '(imenu-list-smart-toggle :which-key "outline")))
 
+;; Cheat Sheet (Bottom Right)
+(defun my/toggle-cheat-sheet ()
+  "Toggle a quick reference cheat sheet."
+  (interactive)
+  (let ((buf-name "*CheatSheet*"))
+    (if (get-buffer-window buf-name)
+        (delete-window (get-buffer-window buf-name))
+      (with-current-buffer (get-buffer-create buf-name)
+        (setq buffer-read-only nil)
+        (erase-buffer)
+        (insert "  HPC Emacs Cheatsheet\n")
+        (insert "========================\n\n")
+        (insert "Navigation\n")
+        (insert "----------\n")
+        (insert "gg / G      : Top / Bottom\n")
+        (insert ": <num>     : Go to line\n")
+        (insert "0 / $       : Start/End line\n")
+        (insert "%           : Match paren\n")
+        (insert "C-o / C-i   : Jump Back/Fwd\n\n")
+        (insert "Editing\n")
+        (insert "-------\n")
+        (insert "v / V       : Visual Char/Line\n")
+        (insert "C-v         : Visual Block\n")
+        (insert "  + I / A   : Multi-line Edit\n")
+        (insert "u / C-r     : Undo / Redo\n")
+        (insert ">> / <<     : Indent\n\n")
+        (insert "Windows\n")
+        (insert "-------\n")
+        (insert "C-w h/j/k/l : Move Focus\n")
+        (insert "C-w v / s   : Split Vert/Hor\n")
+        (insert "C-w c       : Close Window\n\n")
+        (insert "Leader (SPC)\n")
+        (insert "------------\n")
+        (insert "f f         : Find File\n")
+        (insert "b b         : Switch Buffer\n")
+        (insert "e           : Explorer\n")
+        (insert "o           : Outline\n")
+        (insert "c l         : LSP Actions\n")
+        (insert "d d         : Debug (Dape)\n")
+        (special-mode))
+      (display-buffer buf-name))))
+
+(add-to-list 'display-buffer-alist
+             '("\\*CheatSheet\\*"
+               (display-buffer-in-side-window)
+               (side . right)
+               (slot . 1)
+               (window-width . 30)
+               (window-parameters . ((no-other-window . t)
+                                     (no-delete-other-windows . t)))))
+
+(my/leader-keys
+  "?" '(my/toggle-cheat-sheet :which-key "cheatsheet"))
+
 ;; Markdown & Documentation
 (use-package markdown-mode
   :ensure t
@@ -296,9 +368,12 @@
                      (with-current-buffer buffer
                        (or (equal major-mode 'vterm-mode)
                            (string-prefix-p vterm-buffer-name (buffer-name buffer))))))
-                 (display-buffer-reuse-window display-buffer-at-bottom)
+                 (display-buffer-reuse-window display-buffer-in-side-window)
+                 (side . bottom)
+                 (slot . 1)
                  (reusable-frames . visible)
-                 (window-height . 0.3)))
+                 (window-height . 0.3)
+                 (window-parameters . ((dedicated . t) (no-other-window . t)))))
   (my/leader-keys
     "t" '(vterm-toggle :which-key "terminal")))
 
