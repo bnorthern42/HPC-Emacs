@@ -1,4 +1,4 @@
-(setq read-process-output-max (* 3 1024 1024)) ; 3MB (Better for huge C++ LSP responses)
+(setq read-process-output-max (* 8 1024 1024)) ; 8MB (Better for huge C++ LSP responses)
 (setq create-lockfiles nil) ; Stop creating .#files (breaks some makefiles)
 
 ;; Garbage Collector Magic Hack
@@ -8,7 +8,13 @@
   :hook (after-init . gcmh-mode)
   :config
   (setq gcmh-high-cons-threshold (* 512 1024 1024) ; 512MB when idle
-        gcmh-idle-delay 0.8))
+        gcmh-low-cons-threshold (* 64 1024 1024);; typing  
+        gcmh-idle-delay 1.5))
+;; a bit better experience
+(setq fast-but-imprecise-scrolling t)
+(setq redisplay-skip-fontification-on-input t)
+(setq bidi-display-reordering nil)
+(setq bidi-paragraph-direction 'left-to-right)
 
 (use-package base16-theme
 :ensure t
@@ -22,6 +28,9 @@
 (set-face-attribute 'default nil :font "JetBrains Mono" :height 120)
 (global-display-line-numbers-mode 1)
 (setq display-line-numbers-type 'relative)
+
+;; Visible Scrollbar
+(scroll-bar-mode 1)
 
 ;; Smooth Scrolling
 (use-package good-scroll
@@ -137,6 +146,31 @@
     '(menu-item "Reload Configuration" my/reload-config
                 :help "Re-tangle and reload config")))
 
+;; Which Key
+;; Shows a popup of available keybindings when you pause.
+(use-package which-key
+  :ensure t
+  :init (which-key-mode)
+  :config
+  (setq which-key-idle-delay 0.3)
+  (setq which-key-separator " → " )
+  (setq which-key-unicode-correction 3)
+  (setq which-key-sort-order 'which-key-local-then-key-order)
+  )
+
+(use-package desktop
+  :ensure nil
+  :config
+  (desktop-save-mode 1)
+  (setq desktop-save t
+        desktop-load-locked-desktop t
+        desktop-restore-eager 5)) ; Restore first 5 buffers immediately, others in background
+
+(use-package saveplace
+  :ensure nil
+  :config
+  (save-place-mode 1))
+
 (use-package evil
 :ensure t
 :demand t
@@ -175,7 +209,7 @@
     "f" '(:ignore t :which-key "files")
     "ff" '(find-file :which-key "find file")
     "bb" '(switch-to-buffer :which-key "switch buffer")
-    "pp" '(projectile-command-map :which-key "projectile")
+    "p" '(projectile-command-map :which-key "projectile")
     "e" '(treemacs :which-key "explorer")))
 ;; Dired (File Manager) Configuration
 (use-package dired
@@ -186,6 +220,16 @@
     (kbd "h") 'dired-up-directory
     (kbd "l") 'dired-find-file
     (kbd "RET") 'dired-find-file))
+
+(use-package smartparens
+  :ensure t
+  :hook (prog-mode . smartparens-mode)
+  :config
+  (require 'smartparens-config))
+
+(use-package rainbow-delimiters
+  :ensure t
+  :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package projectile
 :ensure t
@@ -198,7 +242,7 @@
 (add-to-list 'projectile-project-root-files-bottom-up "Makefile")
 ;; Custom logic to prioritize builds
 (setq projectile-compilation-cmd-map
-'(("Makefile" . "make -j $(nproc)")
+'(("Makefile" . "make -j8")
 ("meson.build" . "meson compile -C builddir"))))
 
 ;; File Tree (Eclipse-like Sidebar)
@@ -266,13 +310,13 @@
       (with-current-buffer (get-buffer-create buf-name)
         (setq buffer-read-only nil)
         (erase-buffer)
-        (insert "  HPC Emacs Cheatsheet\n")
+        (insert "  Emacs Cheatsheet\n")
         (insert "========================\n\n")
         (insert "Navigation\n")
         (insert "----------\n")
         (insert "gg / G      : Top / Bottom\n")
         (insert ": <num>     : Go to line\n")
-        (insert "0 / $       : Start/End line\n")
+        (insert "0 / $$     : Start/End line\n")
         (insert "%           : Match paren\n")
         (insert "C-o / C-i   : Jump Back/Fwd\n\n")
         (insert "Editing\n")
@@ -289,12 +333,13 @@
         (insert "C-w c       : Close Window\n\n")
         (insert "Leader (SPC)\n")
         (insert "------------\n")
-        (insert "f f         : Find File\n")
+        (insert "p f         : Find File Projectile\n")
         (insert "b b         : Switch Buffer\n")
         (insert "e           : Explorer\n")
         (insert "o           : Outline\n")
         (insert "c l         : LSP Actions\n")
         (insert "d d         : Debug (Dape)\n")
+        (insert "f s         : Ripgrep\n")
         (special-mode))
       (display-buffer buf-name))))
 
@@ -303,7 +348,7 @@
                (display-buffer-in-side-window)
                (side . right)
                (slot . 1)
-               (window-width . 30)
+               (window-width . 45)
                (window-parameters . ((no-other-window . t)
                                      (no-delete-other-windows . t)))))
 
@@ -440,7 +485,15 @@ completion-category-overrides '((file (styles partial-completion)))))
 :init (marginalia-mode))
 
 (use-package consult
-:ensure t)
+  :ensure (consult :host github :repo "minad/consult")
+  :after general
+  :config
+  (my/leader-keys 
+    "bb" '(consult-buffer :which-key "switch buffer")
+    "fr" '(consult-recent-file :which-key "recent files")
+    "fs" '(consult-ripgrep :which-key "ripgrep")       ; Telescope live_grep
+    "sl" '(consult-line :which-key "search line")      ; Telescope current_buffer_fuzzy_find
+    "si" '(consult-imenu :which-key "imenu")))         ; Telescope lsp_document_symbols
 
 ;; In-buffer completion (Corfu)
 ;; This provides the "IntelliSense" popup as you type.
@@ -450,8 +503,8 @@ completion-category-overrides '((file (styles partial-completion)))))
   (global-corfu-mode)
   :config
   (setq corfu-auto t                 ;; Enable auto completion
-        corfu-auto-delay 0.0         ;; Instant appearance
-        corfu-auto-prefix 1          ;; Show after 1 character
+        corfu-auto-delay 0.25        ;; Instant appearance
+        corfu-auto-prefix 2          ;; Show after 2 characters
         corfu-cycle t                ;; Enable cycling
         corfu-preselect 'first       ;; Always select the first candidate
         corfu-quit-no-match 'separator)
@@ -471,6 +524,9 @@ completion-category-overrides '((file (styles partial-completion)))))
   :config
   (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
 
+(defun eval-expression ()
+  (interactive)
+  (message "eval-expression disabled"))
 (defun my/reload-config ()
 "Tangles the config.org file and loads the resulting config.el."
 (interactive)
