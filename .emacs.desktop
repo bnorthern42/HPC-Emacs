@@ -1,0 +1,67 @@
+;; -*- mode: emacs-lisp; lexical-binding:t; coding: utf-8-emacs; -*-
+;; --------------------------------------------------------------------------
+;; Desktop File for Emacs
+;; --------------------------------------------------------------------------
+;; Created Thu May  7 00:36:01 2026
+;; Desktop file format version 208
+;; Emacs version 30.2
+
+;; Global section:
+(setq desktop-saved-frameset [frameset 1 (27132 9409 530349 21000) (desktop . "208") "bradn44@bradn44" nil nil ((((minibuffer . t) (undecorated) (override-redirect) (font . "-JB-JetBrains Mono-regular-normal-normal-*-16-*-*-*-m-0-iso10646-1") (border-width . 0) (internal-border-width . 0) (child-frame-border-width) (right-divider-width . 0) (bottom-divider-width . 0) (vertical-scroll-bars . right) (horizontal-scroll-bars) (foreground-color . "#bbc2cf") (background-color . "#282c34") (mouse-color . "black") (border-color . "black") (screen-gamma) (line-spacing) (left-fringe . 8) (right-fringe . 8) (no-special-glyphs) (scroll-bar-foreground) (scroll-bar-background) (menu-bar-lines . 1) (tab-bar-lines . 0) (tool-bar-lines . 0) (title) (wait-for-wm . t) (tool-bar-position . top) (inhibit-double-buffering) (icon-type . t) (auto-raise) (auto-lower) (cursor-type . box) (scroll-bar-width . 16) (scroll-bar-height . 16) (alpha) (alpha-background) (no-focus-on-map) (no-accept-focus) (fullscreen . maximized) (visibility . t) (use-frame-synchronization) (skip-taskbar) (z-group) (display-type . color) (background-mode . dark) (cursor-color . "#51afef") (font-parameter) (sticky) (shaded) (environment) (powerline-cache) (dnd-root-window-position) (last-focus-update) (frameset--id . "A79A-8E6B-CCC7-00A8") (frameset--mini t . t) (modeline . t) (unsplittable) (icon-name) (display . ":0") (explicit-name) (height . 61) (width . 340) (left . 2560) (top . 223)) ((min-height . 12) (min-width . 40) (min-height-ignore . 11) (min-width-ignore . 12) (min-height-safe . 3) (min-width-safe . 4) (min-pixel-height . 264) (min-pixel-width . 400) (min-pixel-height-ignore . 242) (min-pixel-width-ignore . 120) (min-pixel-height-safe . 66) (min-pixel-width-safe . 40)) vc (pixel-width . 3440) (pixel-height . 1323) (total-width . 344) (total-height . 60) (normal-height . 1.0) (normal-width . 1.0) (combination-limit) (hc (pixel-width . 3440) (pixel-height . 993) (total-width . 344) (total-height . 45) (normal-height . 0.7494331065759637) (normal-width . 1.0) (combination-limit) (leaf (pixel-width . 300) (pixel-height . 993) (total-width . 30) (total-height . 45) (normal-height . 1.0) (normal-width . 0.08720930232558138) (parameters (window-side . left) (window-slot . 0)) (buffer " *Treemacs-Buffer-#<frame mix.exs - GNU Emacs at bradn44 0x55d64bb9a5f8>" (selected) (hscroll . 0) (fringes 8 8 nil nil) (margins nil) (scroll-bars nil 2 t nil 0 t nil) (vscroll . 0) (dedicated . t) (point . 172) (start . 1))) (vc (last . t) (pixel-width . 3140) (pixel-height . 993) (total-width . 314) (total-height . 45) (normal-height . 1.0) (normal-width . 0.9127906976744187) (combination-limit . t) (leaf (pixel-width . 3140) (pixel-height . 497) (total-width . 314) (total-height . 23) (normal-height . 0.500503524672709) (normal-width . 1.0) (buffer "mix.exs" (selected . t) (hscroll . 0) (fringes 8 8 nil nil) (margins nil) (scroll-bars nil 2 t nil 0 t nil) (vscroll . 0) (dedicated) (point . 585) (start . 333))) (leaf (last . t) (pixel-width . 3140) (pixel-height . 496) (total-width . 314) (total-height . 22) (normal-height . 0.499496475327291) (normal-width . 1.0) (buffer "mix.exs" (selected) (hscroll . 0) (fringes 8 8 nil nil) (margins nil) (scroll-bars nil 2 t nil 0 t nil) (vscroll . 0) (dedicated) (point . 585) (start . 333)) (prev-buffers ("*Warnings*" 1 381) ("index.html.heex" 1 86) ("shop.ex" 1 1) ("mix.exs" 1 585) ("shop" 1 832) ("*scratch*" 1 1))))) (leaf (last . t) (pixel-width . 3440) (pixel-height . 330) (total-width . 344) (total-height . 15) (normal-height . 0.25056689342403626) (normal-width . 1.0) (parameters (window-side . bottom) (window-slot . 0)) (buffer "*Warnings*" (selected) (hscroll . 0) (fringes 8 8 nil nil) (margins nil) (scroll-bars nil 2 t nil 0 t nil) (vscroll . 0) (dedicated . side) (point . 192) (start . 1)) (prev-buffers ("*Warnings*" 1 192)))))])
+(setq desktop-missing-file-warning nil)
+(setq tags-file-name nil)
+(setq tags-table-list nil)
+(setq search-ring nil)
+(setq regexp-search-ring nil)
+(setq register-alist nil)
+(setq file-name-history '("~/Projects/tutorials/languages/elixir/shop"))
+
+;; Buffer section -- buffers listed in same order as in buffer list:
+(desktop-create-buffer 208
+  "/home/bradn44/Projects/tutorials/languages/elixir/shop/mix.exs"
+  "mix.exs"
+  'elixir-mode
+  '(corfu-mode display-fill-column-indicator-mode alchemist-mode evil-collection-unimpaired-mode evil-local-mode font-lock-mode display-line-numbers-mode)
+  585
+  '(585 nil)
+  nil
+  nil
+  '((buffer-display-time 27132 9379 504359 698000) (buffer-file-coding-system . undecided-unix) (overwrite-mode))
+  '((mark-ring nil)))
+
+(desktop-create-buffer 208
+  nil
+  "shop"
+  'dired-mode
+  '(evil-collection-unimpaired-mode evil-local-mode font-lock-mode display-line-numbers-mode)
+  831
+  '(831 nil)
+  t
+  '("/home/bradn44/Projects/tutorials/languages/elixir/shop/")
+  '((buffer-display-time 27132 9339 626012 256000) (overwrite-mode))
+  '((mark-ring (831))))
+
+(desktop-create-buffer 208
+  "/home/bradn44/Projects/tutorials/languages/elixir/shop/lib/shop_web/controllers/product_html/index.html.heex"
+  "index.html.heex"
+  'mhtml-mode
+  '(corfu-mode display-fill-column-indicator-mode evil-collection-unimpaired-mode evil-local-mode font-lock-mode display-line-numbers-mode scroll-bar-mode)
+  86
+  '(nil nil)
+  nil
+  nil
+  '((buffer-display-time 27132 9339 574822 929000) (buffer-file-coding-system . undecided-unix) (overwrite-mode))
+  '((mark-ring nil)))
+
+(desktop-create-buffer 208
+  "/home/bradn44/Projects/tutorials/languages/elixir/shop/lib/shop.ex"
+  "shop.ex"
+  'elixir-mode
+  '(corfu-mode display-fill-column-indicator-mode alchemist-mode evil-collection-unimpaired-mode evil-local-mode font-lock-mode display-line-numbers-mode)
+  1
+  '(nil nil)
+  nil
+  nil
+  '((buffer-display-time 27132 8891 327000 721000) (buffer-file-coding-system . undecided-unix) (overwrite-mode))
+  '((mark-ring nil)))
+

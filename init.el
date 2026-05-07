@@ -62,8 +62,8 @@
                    (float-time
                     (time-subtract after-init-time before-init-time)))
            gcs-done)
-  ;; Reset GC threshold to a reasonable value (20MB) after startup
-  (setq gc-cons-threshold (* 20 1024 1024)))
+  ;; Reset GC threshold to a reasonable value (50MB) after startup
+  (setq gc-cons-threshold (* 50 1024 1024)))
 (add-hook 'emacs-startup-hook #'my/display-startup-time)
 
 (let ((conf-org (expand-file-name "config.org" user-emacs-directory))
@@ -77,3 +77,16 @@
           (org-babel-tangle-file conf-org conf-el "elisp"))
         (load conf-el))
     (message "No config.org found in %s" user-emacs-directory)))
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(warning-suppress-types '((treesit))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(centaur-tabs-close-selected ((t :height 1.3 :weight bold :foreground "red")))
+ '(centaur-tabs-close-unselected ((t :height 1.3 :weight medium italic :foreground "yellow"))))
