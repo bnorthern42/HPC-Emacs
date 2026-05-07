@@ -1,3 +1,16 @@
+;; ARCH LINUX SHIM: Pacman pre-loads an older 'compat' library.
+;; Corfu demands a new Emacs 31 function called `set-local`. 
+;; We polyfill it here to stop the minibuffer crashes.
+(unless (fboundp 'set-local)
+  (defun set-local (variable value)
+    (set (make-local-variable variable) value)))
+
+;; Force Elpaca to grab the latest compat library first
+(use-package compat
+  :ensure t)
+
+(elpaca-wait)
+
 (setq native-comp-async-report-warnings-errors 'silent)
 (setq read-process-output-max (* 8 1024 1024)) ; 8MB (Better for huge C++ LSP responses)
 (setq create-lockfiles nil) ; Stop creating .#files (breaks some makefiles)
@@ -95,6 +108,39 @@
   :init (which-key-mode)
   :config
   (setq which-key-idle-delay 0.3))
+
+;; 1. THE SPLIT FIX: Stop C-w s and C-w v from cloning the buffer
+;; When splitting, automatically switch the new window to the LAST used buffer
+(with-eval-after-load 'evil
+  (defun my/evil-split-unique ()
+    "Split horizontally and show the previous buffer."
+    (interactive)
+    (evil-window-split)
+    (switch-to-buffer (other-buffer (current-buffer) t)))
+
+  (defun my/evil-vsplit-unique ()
+    "Split vertically and show the previous buffer."
+    (interactive)
+    (evil-window-vsplit)
+    (switch-to-buffer (other-buffer (current-buffer) t)))
+
+  ;; Override the default Evil split bindings
+  (define-key evil-window-map (kbd "s") 'my/evil-split-unique)
+  (define-key evil-window-map (kbd "v") 'my/evil-vsplit-unique)
+  (define-key evil-normal-state-map (kbd "C-w s") 'my/evil-split-unique)
+  (define-key evil-normal-state-map (kbd "C-w v") 'my/evil-vsplit-unique))
+
+
+;; 2. THE NAVIGATION FIX: Stop tabs/buffers from opening twice
+;; If you click a tab or search a buffer that is already visible in another window,
+;; force Emacs to jump your cursor to that window instead of duplicating it here.
+(defun my/jump-to-visible-buffer (orig-fn buffer-or-name &rest args)
+  (let ((window (get-buffer-window buffer-or-name 0)))
+    (if window
+        (select-window window) ;; Jump to the existing window
+      (apply orig-fn buffer-or-name args)))) ;; Otherwise, open it normally
+
+(advice-add 'switch-to-buffer :around #'my/jump-to-visible-buffer)
 
 (use-package evil
   :ensure t
@@ -200,27 +246,54 @@
   :config
   (flycheck-credo-setup))
 
+;; strictly for mechanical auto-closing, completely ignoring syntax parsing
 (use-package web-mode
   :ensure t
-  :mode ("\\.eex\\'" . web-mode)
   :mode ("\\.heex\\'" . web-mode)
+  :init
+  ;; 1. Set the defaults BEFORE the mode ever loads
+  (setq-default web-mode-enable-auto-closing t)
+  (setq-default web-mode-enable-auto-pairing t)
+  (setq-default web-mode-enable-auto-quoting t)
+  (setq-default web-mode-markup-indent-offset 2)
   :config
-  ;; Tell web-mode to use the Elixir engine for these files
-  (setq web-mode-engines-alist
-        '(("elixir" . "\\.heex\\'\\|\\.eex\\'")))
+  ;; 2. THE MISSING LINK: Force web-mode to treat .heex files as HTML
+  ;; Without this, the tag auto-closer stays turned off.
+  (add-to-list 'web-mode-content-types-alist '("html" . "\\.heex\\'")))
 
-  ;; The Magic: Enable auto-closing for brackets, quotes, and HTML tags
-  (setq web-mode-enable-auto-pairing t) ; Closes (), [], {}
-  (setq web-mode-enable-auto-closing t) ; Closes <div> with </div>
-  (setq web-mode-enable-auto-quoting t) ; Adds quotes around HTML attributes
+(use-package emmet-mode
+  :ensure t
+  :hook ((web-mode . emmet-mode)
+         (html-mode . emmet-mode))
+  :config
+  ;; Force Emmet to recognize .heex files as HTML
+  (add-to-list 'emmet-jsx-major-modes 'web-mode)
 
-  ;; Indentation (2 spaces is standard for Elixir/HTML)
-  (setq web-mode-markup-indent-offset 2)
-  (setq web-mode-css-indent-offset 2)
-  (setq web-mode-code-indent-offset 2)
-  
-  ;; Make sure smartparens stays out of web-mode's way to prevent double-closing
-  (add-hook 'web-mode-hook (lambda () (smartparens-mode -1))))
+;; The Dynamic HEEx Interceptor (Fixed Word Boundary)
+  (defun my/heex-tab-handler ()
+    "Intercept TAB to dynamically expand *-if and *-for tags, fallback to Emmet."
+    (interactive)
+    ;; Added \\b to force it to grab the entire word (div) instead of just the last letter (v)
+    (if (looking-back "\\b\\([[:alnum:]_.]+\\)-\\(if\\|for\\)" (line-beginning-position))
+        (let ((tag (match-string 1))
+              (attr (match-string 2)))
+          ;; 1. Delete the shorthand (e.g., div-if)
+          (delete-region (match-beginning 0) (match-end 0))
+          ;; 2. Build the opening HEEx tag
+          (insert (format "<%s :%s={}>" tag attr))
+          ;; 3. Build the closing tag without moving the cursor
+          (save-excursion
+            (insert (format "</%s>" tag)))
+          ;; 4. Back up 2 spaces so the cursor lands perfectly inside the {}
+          (backward-char 2))
+      
+      ;; If the word DOES NOT end in -if or -for, let Emmet do its normal job
+      (call-interactively 'emmet-expand-line)))
+
+
+  ;; Bind TAB to our smart interceptor instead of Emmet directly
+  (define-key emmet-mode-keymap (kbd "TAB") 'my/heex-tab-handler)
+  (define-key emmet-mode-keymap (kbd "<tab>") 'my/heex-tab-handler))
 
 (use-package eglot
   :after general
@@ -250,17 +323,6 @@
   :after vterm
   :config
   (my/leader-keys "t" '(vterm-toggle :which-key "terminal")))
-
-;; FORCE Elpaca to grab the latest compat library from ELPA/MELPA
-;; overriding the older one built into Emacs 30.2.
-(use-package compat
-  :ensure t)
-
-(elpaca-wait) ;; Critical: wait for compat to install before continuing
-
-(use-package vertico
-  :ensure t
-  :init (vertico-mode))
 
 (use-package consult
   :ensure t
