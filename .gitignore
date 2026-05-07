@@ -12,4 +12,5 @@ ede-projects.el
 projectile-bookmarks.eld
 tramp
 places
-.emeacs.desktop
+.emeacs.desktop*
+tree-sitter/
