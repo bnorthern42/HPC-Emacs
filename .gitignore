@@ -13,4 +13,14 @@ projectile-bookmarks.eld
 tramp
 places
 .emeacs.desktop*
-tree-sitter/
+tree-sitter/*
+.vscode/*
+.vscode
+tree-sitter
+.emacs.desktop
+history*
+recentf*
+projects
+.emacs.desktop.lock
+emacs.desktop
+emacs.desktop.lock

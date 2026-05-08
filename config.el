@@ -38,7 +38,16 @@
 
 (use-package doom-modeline
   :ensure t
-  :init (doom-modeline-mode 1))
+  :init 
+  (setq doom-modeline-modal t)
+  (setq doom-modeline-major-mode-icon t)
+  :config
+  ;; Force it to load late to ensure all dependencies (like evil) exist
+  (add-hook 'after-init-hook #'doom-modeline-mode)
+  
+  ;; Prevent the redisplay crash
+  (setq doom-modeline-check-stats nil)
+  (setq doom-modeline-env-version t))
 
 (set-face-attribute 'default nil :font "JetBrains Mono" :height 120)
 (global-display-line-numbers-mode 1)
@@ -57,6 +66,10 @@
   :config
   (setq-default display-fill-column-indicator-column 100))
 
+(use-package rainbow-delimiters
+  :ensure t
+  :hook (prog-mode . rainbow-delimiters-mode))
+
 (use-package centaur-tabs
   :ensure t
   :demand
@@ -65,14 +78,23 @@
   (setq centaur-tabs-style "rounded"
         centaur-tabs-height 32
         centaur-tabs-set-icons t
-        centaur-tabs-set-bar 'under)
+        centaur-tabs-set-bar 'under
+        ;; --- THE FIX FOR THE 'X' BUTTON ---
+        centaur-tabs-set-close-button t
+        centaur-tabs-close-button " x ") 
+
   (with-eval-after-load 'evil
     (define-key evil-normal-state-map (kbd "g t") 'centaur-tabs-forward)
     (define-key evil-normal-state-map (kbd "g T") 'centaur-tabs-backward))
-  (custom-set-faces
-   '(centaur-tabs-close-selected ((t :height 1.3 :weight bold :foreground "red")))
-   '(centaur-tabs-close-unselected ((t :height 1.3 :weight medium italic :foreground "yellow"))))
 
+  ;; Styling the 'x' button to be distinct
+  (custom-set-faces
+   '(centaur-tabs-close-selected ((t :height 0.9 :weight bold :foreground "#ff5555")))
+   '(centaur-tabs-close-unselected ((t :height 0.9 :weight medium :foreground "#555555")))
+   '(centaur-tabs-selected ((t :background "#282a36" :foreground "#f8f8f2")))
+   '(centaur-tabs-unselected ((t :background "#121212" :foreground "#6272a4"))))
+
+  ;; Ensure your custom context menu and logic remain intact
   (defun my/centaur-tabs-kill-on-side (direction)
     (let* ((group (centaur-tabs-current-group))
            (buffers (centaur-tabs-view group))
@@ -142,6 +164,23 @@
 
 (advice-add 'switch-to-buffer :around #'my/jump-to-visible-buffer)
 
+;; Enable visible, draggable dividers between windows
+(use-package frame
+  :ensure nil
+  :config
+  (setq window-divider-default-bottom-width 2)
+  (setq window-divider-default-right-width 4)
+  (setq window-divider-default-places 't) ; dividers on both bottom and right
+  (window-divider-mode 1))
+
+;; Optional: Make the mouse follow your focus
+;; This makes the window active as soon as the mouse hovers over it
+(setq mouse-autoselect-window t)
+
+;; Ensure the mouse works even in the fringe (the space where line numbers live)
+(setq-default indicate-empty-lines t)
+(setq fringe-indicator-alist '((truncation . nil) (continuation . nil)))
+
 (use-package evil
   :ensure t
   :demand t
@@ -171,13 +210,7 @@
 
 (elpaca-wait)
 
-(with-eval-after-load 'general
-  (my/leader-keys
-    "f" '(:ignore t :which-key "files")
-    "ff" '(find-file :which-key "find file")
-    "bb" '(switch-to-buffer :which-key "switch buffer")
-    "p" '(projectile-command-map :which-key "projectile")
-    "e" '(treemacs :which-key "explorer")))
+
 
 (use-package dired
   :ensure nil
@@ -196,12 +229,6 @@
   (setq projectile-project-search-path '("~/projects" "~/work"))
   (setq projectile-switch-project-action #'projectile-find-file))
 
-(use-package treemacs
-  :ensure t
-  :config
-  (setq treemacs-width 30)
-  (treemacs-follow-mode t))
-
 (use-package imenu-list
   :ensure t
   :after general
@@ -209,6 +236,42 @@
   (setq imenu-list-position 'right)
   (setq imenu-list-size 30)
   (my/leader-keys "o" '(imenu-list-smart-toggle :which-key "outline")))
+  (use-package project
+  :ensure nil
+  :config
+  ;; Priority 1: Look for Elixir or C++ project markers
+  ;; Priority 2: Fall back to Git
+  (setq project-vc-extra-root-markers '("mix.exs" "CMakeLists.txt" ".project"))
+  
+  ;; Custom logic to ensure we always stop at the mix.exs folder
+  (defun my/project-find-root (dir)
+    (let ((root (or (locate-dominating-file dir "mix.exs")
+                    (locate-dominating-file dir ".project"))))
+      (when root
+        (cons 'transient root))))
+
+  ;; Push our custom finder to the top of the list
+  (setq project-find-functions (list #'my/project-find-root #'project-try-vc)))
+
+(use-package treemacs
+  :ensure t
+  :defer t
+  :config
+  ;; 1. THE FIX: Allow the window to be resized by the mouse/commands
+  (setq treemacs-lock-width nil)
+  
+  ;; 2. Increase default width so long names aren't immediately cut off
+  (setq treemacs-width 35)
+  
+  ;; 3. Optional: Make Treemacs "follow" your file
+  (treemacs-follow-mode t)
+  
+  ;; 4. Optional: Enable file-watch (updates when files change on disk)
+  (treemacs-filewatch-mode t))
+
+(use-package treemacs-evil
+  :ensure t
+  :after (treemacs evil))
 
 ;; 1. EXORCISE THE GHOSTS: Remove any old tree-sitter remapping
 (setq major-mode-remap-alist (assq-delete-all 'elixir-mode major-mode-remap-alist))
@@ -296,22 +359,24 @@
   (define-key emmet-mode-keymap (kbd "<tab>") 'my/heex-tab-handler))
 
 (use-package eglot
-  :after general
-  :hook (c++-mode . eglot-ensure)
+  :ensure nil
   :config
+  ;; Tell Eglot to use the AUR binary name
   (add-to-list 'eglot-server-programs
-               '((c++-mode c-mode) . ("clangd" "--header-insertion=never" "--background-index")))
-  (my/leader-keys
-    "cl" '(:ignore t :which-key "lsp")
-    "clf" '(eglot-format-buffer :which-key "format")))
+               '(elixir-mode . ("elixir-ls")))
+  
+  ;; Tell ElixirLS to look at the current folder for the mix.exs
+  (setq-default eglot-workspace-configuration
+                '((:elixirLS . (:projectDir ".")))))
+
+(add-hook 'elixir-mode-hook #'eglot-ensure)
+(add-hook 'c++-mode-hook #'eglot-ensure)
 
 (use-package dape
   :after general
   :ensure t
   :config
-  (my/leader-keys
-    "d" '(:ignore t :which-key "debug")
-    "dd" '(dape :which-key "start")))
+)
 
 (use-package vterm
   :ensure t
@@ -322,42 +387,193 @@
   :ensure t
   :after vterm
   :config
-  (my/leader-keys "t" '(vterm-toggle :which-key "terminal")))
+)
+
+(use-package project-terminal
+  :ensure (:host github :repo "cowboyd/project-terminal.el")
+  :after (project vterm)
+  :custom
+  (project-terminal-height 0.15)
+  (project-terminal-side 'bottom)
+  (project-terminal-shell 'vterm))
+
+;; 1. DISABLE THE GUI & TAGS FALLBACK GLOBALLY
+(setq use-dialog-box nil)             ; Stop dialog boxes from opening
+(setq xref-prompt-for-identifier nil) ; Use the word under the mouse immediately
+(setq-default xref-backend-functions '(eglot--xref-backend t)) ; Force LSP over Tags
+
+;; 2. Modeline Fix
+(setq doom-modeline-lsp nil)          ; Prevent the modeline from crashing
+
+;; 3. Enable the modern right-click editor context menu
+;;
+;; BUG FIX:
+;; You had:
+;;   (context-menu-menu-mode 1)
+;;
+;; That is wrong. The real Emacs mode is:
+;;   context-menu-mode
+;;
+;; This controls right-click inside editor buffers.
+(when (fboundp 'context-menu-mode)
+  (context-menu-mode 1))
+
+;; 4. Right-click inside editor buffers
+;;
+;; Some configs/packages/Evil states eat mouse-3 or only react to down-mouse-3.
+;; This forces normal editor right-click to open the Emacs context menu.
+(defun my/editor-context-menu (event)
+  "Open the normal Emacs context menu in editor buffers."
+  (interactive "e")
+  (mouse-set-point event)
+  (if (fboundp 'context-menu-open)
+      (context-menu-open)
+    (mouse-menu-major-mode-map event)))
+
+(define-key global-map [mouse-3] #'my/editor-context-menu)
+(define-key global-map [down-mouse-3] #'my/editor-context-menu)
+
+(with-eval-after-load 'evil
+  (define-key evil-normal-state-map [mouse-3] #'my/editor-context-menu)
+  (define-key evil-normal-state-map [down-mouse-3] #'my/editor-context-menu)
+  (define-key evil-insert-state-map [mouse-3] #'my/editor-context-menu)
+  (define-key evil-insert-state-map [down-mouse-3] #'my/editor-context-menu)
+  (define-key evil-visual-state-map [mouse-3] #'my/editor-context-menu)
+  (define-key evil-visual-state-map [down-mouse-3] #'my/editor-context-menu)
+  (define-key evil-motion-state-map [mouse-3] #'my/editor-context-menu)
+  (define-key evil-motion-state-map [down-mouse-3] #'my/editor-context-menu))
+
+;; 5. Mouse Bindings
+(define-key global-map [C-down-mouse-1] 'ignore)
+(define-key global-map [C-mouse-1] 'xref-find-definitions)
+(define-key global-map [C-mouse-3] 'xref-go-back)
+(define-key global-map [C-S-mouse-1] 'eglot-find-declaration)
+
+(use-package vertico
+  :ensure t
+  :init (vertico-mode 1)
+  :config (setq vertico-cycle t))
+
+(use-package vertico-posframe
+  :ensure t
+  :after vertico
+  :init (vertico-posframe-mode 1)
+  :config
+  (setq vertico-posframe-hide-minibuffer t
+        vertico-posframe-width 110
+        vertico-posframe-height 20
+        vertico-posframe-poshandler #'posframe-poshandler-frame-top-right-corner))
 
 (use-package consult
   :ensure t
   :after general
   :config
-  (my/leader-keys
-    "bb" '(consult-buffer :which-key "switch buffer")
-    "fs" '(consult-ripgrep :which-key "ripgrep")))
+  (setq consult-preview-key 'any)
+  (consult-customize
+   consult-find consult-ripgrep consult-line consult-buffer
+   :preview-key '(:debounce 0.1 any)))
 
-(use-package corfu
+(use-package orderless
   :ensure t
-  :init (global-corfu-mode)
-  :config
-  (setq corfu-auto t
-        corfu-auto-delay 0.2
-        corfu-auto-prefix 2))
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles partial-completion)))))
+
+(use-package marginalia
+  :ensure t
+  :init (marginalia-mode 1))
 
 (defun my/reload-config ()
-  "Tangles the config.org file and loads the resulting config.el."
   (interactive)
-  (let ((conf-org (expand-file-name "config.org" user-emacs-directory))
-        (conf-el  (expand-file-name "config.el"  user-emacs-directory)))
-    (require 'org)
+  (let* ((conf-org (expand-file-name "config.org" user-emacs-directory))
+         (conf-el  (expand-file-name "config.el" user-emacs-directory)))
     (org-babel-tangle-file conf-org conf-el "elisp")
     (load-file conf-el)
     (message "Config reloaded!")))
 
-(with-eval-after-load 'general
-  (my/leader-keys "hr" '(my/reload-config :which-key "reload config")))
+(global-set-key (kbd "C-c r") #'my/reload-config)
 
-;; Restore session at the very end
 (use-package desktop
   :ensure nil
+  :init (desktop-save-mode 1)
   :config
-  (setq desktop-save t
-        desktop-load-locked-desktop t
-        desktop-restore-eager 5)
-  (desktop-save-mode 1))
+  (setq desktop-path (list user-emacs-directory)
+        desktop-load-locked-desktop t))
+
+;; --- THE MASTER KEYMAP FIX ---
+;; We define ALL keys in one block to stop them from vanishing.
+(with-eval-after-load 'general
+  ;; 1. FIRST: Clear the 't' binding so it can become a prefix
+  (general-unbind :states '(normal insert visual emacs) :keymaps 'override "SPC t")
+
+  ;; 2. THEN: Define the full map
+  (my/leader-keys
+    ;; Files & Search
+    "f"  '(:ignore t :which-key "files")
+    "ff" '(consult-find :which-key "find file")
+    "fs" '(consult-ripgrep :which-key "ripgrep search")
+    
+    ;; Buffers & Tabs
+    "b"  '(:ignore t :which-key "buffers")
+    "bb" '(consult-buffer :which-key "switch buffer")
+    "bk" '(kill-current-buffer :which-key "kill buffer")
+    "x"  '(kill-current-buffer :which-key "close tab")
+
+    ;; Projects & Explorer
+    "p"  '(:ignore t :which-key "project")
+    "pp" '(projectile-command-map :which-key "projectile")
+    "e"  '(treemacs :which-key "explorer")
+    "o"  '(imenu-list-smart-toggle :which-key "outline")
+
+    ;; TERMINAL MENU (The new layout)
+    "t"  '(:ignore t :which-key "terminal")
+    "tt" '(project-terminal-toggle :which-key "toggle project terminal")
+    "tT" '(project-terminal-add :which-key "add project terminal")
+    "tf" '(vterm :which-key "vterm standalone")
+    
+    ;; Debug & Help
+    "d"  '(:ignore t :which-key "debug")
+    "dd" '(dape :which-key "start")
+    "h"  '(:ignore t :which-key "help")
+    "hr" '(my/reload-config :which-key "reload config")))
+
+;; --- SESSION PERSISTENCE ---
+(use-package desktop
+  :ensure nil ; Built-in
+  :init
+  (desktop-save-mode 1)
+  :config
+  ;; Automatically save when Emacs is idle
+  (setq desktop-auto-save-timeout 30)
+  ;; Save the desktop in the user-emacs-directory
+  (setq desktop-path (list user-emacs-directory))
+  (setq desktop-dirname user-emacs-directory)
+  (setq desktop-base-file-name "emacs.desktop")
+  
+  ;; Prevent Desktop from asking "Active desktop found, use it?" every time
+  (setq desktop-load-locked-desktop t)
+  
+  ;; Don't save some temp or utility buffers
+  (setq desktop-modes-not-to-save
+        '(tags-table-mode dired-mode vterm-mode help-mode magit-mode)))
+
+;; --- RECENT FILES PERSISTENCE ---
+(use-package recentf
+  :ensure nil ; Built-in
+  :init
+  (recentf-mode 1)
+  :config
+  (setq recentf-max-saved-items 200
+        recentf-max-menu-items 15))
+
+;; --- MINIBUFFER HISTORY PERSISTENCE ---
+(use-package savehist
+  :ensure nil ; Built-in
+  :init
+  (savehist-mode 1))
+
+;; --- CURSOR POSITION PERSISTENCE ---
+(use-package saveplace
+  :ensure nil ; Built-in
+  :init
+  (save-place-mode 1))
