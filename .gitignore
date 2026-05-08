@@ -17,7 +17,10 @@ tree-sitter/*
 .vscode/*
 .vscode
 tree-sitter
-emacs.desktop*
+.emacs.desktop
 history*
 recentf*
 projects
+.emacs.desktop.lock
+emacs.desktop
+emacs.desktop.lock

@@ -503,22 +503,39 @@
 ;; --- THE MASTER KEYMAP FIX ---
 ;; We define ALL keys in one block to stop them from vanishing.
 (with-eval-after-load 'general
+  ;; 1. FIRST: Clear the 't' binding so it can become a prefix
+  (general-unbind :states '(normal insert visual emacs) :keymaps 'override "SPC t")
+
+  ;; 2. THEN: Define the full map
   (my/leader-keys
+    ;; Files & Search
     "f"  '(:ignore t :which-key "files")
     "ff" '(consult-find :which-key "find file")
     "fs" '(consult-ripgrep :which-key "ripgrep search")
+    
+    ;; Buffers & Tabs
     "b"  '(:ignore t :which-key "buffers")
     "bb" '(consult-buffer :which-key "switch buffer")
-    "p"  '(projectile-command-map :which-key "projectile")
+    "bk" '(kill-current-buffer :which-key "kill buffer")
+    "x"  '(kill-current-buffer :which-key "close tab")
+
+    ;; Projects & Explorer
+    "p"  '(:ignore t :which-key "project")
+    "pp" '(projectile-command-map :which-key "projectile")
     "e"  '(treemacs :which-key "explorer")
     "o"  '(imenu-list-smart-toggle :which-key "outline")
-    "h"  '(:ignore t :which-key "help")
-    "hr" '(my/reload-config :which-key "reload config")
-    "t"  '(vterm-toggle :which-key "terminal")
-    "pt" '(project-terminal-toggle :which-key "toggle project terminal")
-    "pT" '(project-terminal-add :which-key "add project terminal")
+
+    ;; TERMINAL MENU (The new layout)
+    "t"  '(:ignore t :which-key "terminal")
+    "tt" '(project-terminal-toggle :which-key "toggle project terminal")
+    "tT" '(project-terminal-add :which-key "add project terminal")
+    "tf" '(vterm :which-key "vterm standalone")
+    
+    ;; Debug & Help
     "d"  '(:ignore t :which-key "debug")
-    "dd" '(dape :which-key "start")))
+    "dd" '(dape :which-key "start")
+    "h"  '(:ignore t :which-key "help")
+    "hr" '(my/reload-config :which-key "reload config")))
 
 ;; --- SESSION PERSISTENCE ---
 (use-package desktop
