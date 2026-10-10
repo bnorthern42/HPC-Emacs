@@ -49,11 +49,11 @@
   (setq doom-modeline-check-stats nil)
   (setq doom-modeline-env-version t))
 
-(set-face-attribute 'default nil :font "JetBrains Mono" :height 120)
+(condition-case nil (set-face-attribute 'default nil :font "JetBrains Mono" :height 120) (error nil))
 (global-display-line-numbers-mode 1)
 (setq display-line-numbers-type 'relative)
 
-(scroll-bar-mode 1)
+(when (fboundp 'scroll-bar-mode) (scroll-bar-mode 1))
 
 (use-package good-scroll
   :ensure t
@@ -301,6 +301,9 @@
     "cli" '(alchemist-iex-run :which-key "run iex")
     "clh" '(alchemist-help-search-at-point :which-key "help at point")
     "cld" '(alchemist-goto-definition-at-point :which-key "go to definition")))
+
+(use-package flycheck
+  :ensure t)
 
 ;; 4. Linter
 (use-package flycheck-credo
