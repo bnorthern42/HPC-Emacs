@@ -13,16 +13,16 @@ Targeted workflows include:
 
 ## Architecture
 
-The configuration is fully literate and consists of three core files:
+The configuration is fully literate and consists of five core files:
 
 - `early-init.el` – Disables `package.el`, suppresses UI noise, and prepares the environment for Elpaca.
-- `init.el` – Bootstraps the Elpaca package manager and automatically tangles/reloads `config.org` when necessary.
-- `config.org` – The single source of truth. All settings, packages, and custom logic are defined here and tangled to `config.el`.
+- `init.el` – Bootstraps the Elpaca package manager and automatically tangles/reloads `core.org`, `ide.org`, and `lang.org` when necessary.
+- `core.org`, `ide.org`, and `lang.org` – The single source of truth. All settings, packages, and custom logic are defined here and tangled to `core.el`, `ide.el`, and `lang.el`.
 
 Startup is deliberately lean:
 1. Early GC tuning for fast boot.
 2. Elpaca bootstraps asynchronously.
-3. `config.org` is tangled only when newer than `config.el`.
+3. `core.org`, `ide.org`, and `lang.org` are tangled only when newer than their corresponding `.el` files.
 4. Desktop, recentf, savehist, and saveplace restore your exact session.
 
 ---
@@ -137,7 +137,7 @@ Leader shortcuts:
 
 - Desktop session persistence with automatic idle saves.
 - Recent files, minibuffer history, and cursor position restored across restarts.
-- One-command reload: `SPC hr` (tangles `config.org` then loads the new `config.el`).
+- One-command reload: `SPC hr` (tangles `core.org`, `ide.org`, and `lang.org` then loads the new `.el` files).
 - All leader keys defined in a single block after `general` to prevent binding loss.
 
 ---
@@ -152,10 +152,12 @@ Leader shortcuts:
 
 ## Installation
 
-1. Place the three files in `~/.emacs.d/`:
+1. Place the five files in `~/.emacs.d/`:
    - `early-init.el`
    - `init.el`
-   - `config.org`
+   - `core.org`
+   - `ide.org`
+   - `lang.org`
 
 2. Launch Emacs. Elpaca will bootstrap itself on first run.
 
