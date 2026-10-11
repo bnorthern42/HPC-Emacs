@@ -131,7 +131,7 @@
 )
 
 (use-package vterm
-  :ensure t
+  :ensure (vterm :host github :repo "akermu/emacs-libvterm")
   :config
   (setq vterm-max-scrollback 10000))
 

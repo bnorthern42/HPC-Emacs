@@ -11,8 +11,13 @@
   ;; Load the specific isotope theme
   (load-theme 'base16-isotope t))
 
+(use-package nerd-icons
+  :ensure (nerd-icons :host github :repo "rainstormstudio/nerd-icons.el" :files (:defaults "data"))
+  :custom
+  (nerd-icons-font-family "Symbols Nerd Font Mono"))
+
 (use-package doom-modeline
-  :ensure t
+  :ensure (doom-modeline :host github :repo "seagle0128/doom-modeline")
   :init
   (setq doom-modeline-modal t)
   (setq doom-modeline-major-mode-icon t)
@@ -180,7 +185,7 @@
   (evil-mode 1))
 
 (use-package evil-collection
-  :ensure t
+  :ensure (evil-collection :host github :repo "emacs-evil/evil-collection" :files (:defaults "modes/*/*.el"))
   :after evil
   :config
   (evil-collection-init))
@@ -215,7 +220,7 @@
 ** Projectile, Imenu, and project.el
 #+begin_src elisp
 (use-package projectile
-  :ensure t
+  :ensure (projectile :host github :repo "bbatsov/projectile")
   :init
   (projectile-mode +1)
   :config
@@ -288,7 +293,7 @@
         vertico-posframe-poshandler #'posframe-poshandler-frame-top-right-corner))
 
 (use-package consult
-  :ensure t
+  :ensure (consult :host github :repo "minad/consult")
   :after general
   :config
   (setq consult-preview-key 'any)
