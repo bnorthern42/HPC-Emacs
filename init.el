@@ -15,6 +15,42 @@
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
 (defvar elpaca-sources-directory (expand-file-name "sources/" elpaca-directory))
+
+;; Self-healing: Repair build symlinks if config is moved or opened under a different user
+(defun my/elpaca-heal-build-symlinks ()
+  "Repair broken symlinks in `elpaca-builds-directory' if moved or on a new machine."
+  (when (file-directory-p elpaca-builds-directory)
+    (let* ((marker-file (expand-file-name ".last-emacs-dir" elpaca-directory))
+           (current-dir (file-truename user-emacs-directory))
+           (canary (expand-file-name "elpaca/elpaca.el" elpaca-builds-directory))
+           (last-dir (when (file-exists-p marker-file)
+                       (with-temp-buffer
+                         (insert-file-contents marker-file)
+                         (buffer-string)))))
+      (unless (and (equal last-dir current-dir)
+                   (file-exists-p canary))
+        (let ((repaired 0))
+          (dolist (file (directory-files-recursively elpaca-builds-directory "" t (lambda (_) t)))
+            (when (file-symlink-p file)
+              (let ((target (file-symlink-p file)))
+                (when (string-match "elpaca/sources/\\(.*\\)\\'" target)
+                  (let ((expected (expand-file-name (match-string 1 target) elpaca-sources-directory)))
+                    (unless (and (file-exists-p file)
+                                 (equal (ignore-errors (file-truename file))
+                                        (ignore-errors (file-truename expected))))
+                      (delete-file file)
+                      (if (file-exists-p expected)
+                          (progn
+                            (make-symbolic-link expected file t)
+                            (setq repaired (1+ repaired)))
+                        (message "Removed dangling Elpaca symlink: %s" file))))))))
+          (with-temp-file marker-file
+            (insert current-dir))
+          (when (> repaired 0)
+            (message "Healed %d Elpaca build symlink(s)." repaired)))))))
+
+(my/elpaca-heal-build-symlinks)
+
 (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
                               :ref nil :depth 1 :inherit ignore
                               :files (:defaults "elpaca-test.el" (:exclude "extensions"))

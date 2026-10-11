@@ -70,6 +70,12 @@ As an HPC dev, we want Emacs to stay out of the way. We increase the garbage col
 ;; --- THE MASTER KEYMAP FIX ---
 ;; We define ALL keys in one block to stop them from vanishing.
 (with-eval-after-load 'general
+  (general-create-definer my/leader-keys
+    :states '(normal insert visual emacs)
+    :keymaps 'override
+    :prefix "SPC"
+    :global-prefix "C-SPC")
+
   ;; 1. FIRST: Clear the 't' binding so it can become a prefix
   (general-unbind :states '(normal insert visual emacs) :keymaps 'override "SPC t")
 
