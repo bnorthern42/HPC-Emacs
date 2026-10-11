@@ -1,0 +1,206 @@
+#+TITLE: Language Configuration
+#+PROPERTY: header-args:elisp :tangle lang.el :results silent
+
+* 06 Elixir and HEEx Development
+** Elixir Mode, Alchemist, and Credo
+#+begin_src elisp
+;; 1. EXORCISE THE GHOSTS: Remove any old tree-sitter remapping
+(setq major-mode-remap-alist (assq-delete-all 'elixir-mode major-mode-remap-alist))
+
+;; 2. Install and Force Standard Elixir Mode
+(use-package elixir-mode
+  :ensure t
+  :mode ("\\.ex\\'" . elixir-mode)
+  :mode ("\\.exs\\'" . elixir-mode)
+  :config
+  ;; Double-check font-lock is forcefully enabled when entering the mode
+  (add-hook 'elixir-mode-hook (lambda () (font-lock-mode 1))))
+
+(elpaca-wait)
+
+;; 3. Alchemist Integration
+(use-package alchemist
+  :ensure t
+  :after (elixir-mode general)
+  :hook (elixir-mode . alchemist-mode)
+  :config
+  (my/leader-keys
+    :keymaps 'elixir-mode-map
+    "cl"  '(:ignore t :which-key "elixir/lsp")
+    "clt" '(alchemist-project-run-tests :which-key "run tests")
+    "clb" '(alchemist-project-compile :which-key "compile project")
+    "cli" '(alchemist-iex-run :which-key "run iex")
+    "clh" '(alchemist-help-search-at-point :which-key "help at point")
+    "cld" '(alchemist-goto-definition-at-point :which-key "go to definition")))
+
+(use-package flycheck
+  :ensure t)
+
+;; 4. Linter
+(use-package flycheck-credo
+  :ensure t
+  :after (flycheck elixir-mode)
+  :config
+  (flycheck-credo-setup))
+#+end_src
+
+** HEEx Bracket and Tag Helpers
+#+begin_src elisp
+;; strictly for mechanical auto-closing, completely ignoring syntax parsing
+(use-package web-mode
+  :ensure t
+  :mode ("\\.heex\\'" . web-mode)
+  :init
+  ;; 1. Set the defaults BEFORE the mode ever loads
+  (setq-default web-mode-enable-auto-closing t)
+  (setq-default web-mode-enable-auto-pairing t)
+  (setq-default web-mode-enable-auto-quoting t)
+  (setq-default web-mode-markup-indent-offset 2)
+  :config
+  ;; 2. THE MISSING LINK: Force web-mode to treat .heex files as HTML
+  ;; Without this, the tag auto-closer stays turned off.
+  (add-to-list 'web-mode-content-types-alist '("html" . "\\.heex\\'")))
+
+
+
+#+end_src
+
+** Emmet HTML Snippet Expansion
+#+begin_src elisp
+(use-package emmet-mode
+  :ensure t
+  :hook ((web-mode . emmet-mode)
+         (html-mode . emmet-mode))
+  :config
+  ;; Force Emmet to recognize .heex files as HTML
+  (add-to-list 'emmet-jsx-major-modes 'web-mode)
+
+;; The Dynamic HEEx Interceptor (Fixed Word Boundary)
+  (defun my/heex-tab-handler ()
+    "Intercept TAB to dynamically expand *-if and *-for tags, fallback to Emmet."
+    (interactive)
+    ;; Added \\b to force it to grab the entire word (div) instead of just the last letter (v)
+    (if (looking-back "\\b\\([[:alnum:]_.]+\\)-\\(if\\|for\\)" (line-beginning-position))
+        (let ((tag (match-string 1))
+              (attr (match-string 2)))
+          ;; 1. Delete the shorthand (e.g., div-if)
+          (delete-region (match-beginning 0) (match-end 0))
+          ;; 2. Build the opening HEEx tag
+          (insert (format "<%s :%s={}>" tag attr))
+          ;; 3. Build the closing tag without moving the cursor
+          (save-excursion
+            (insert (format "</%s>" tag)))
+          ;; 4. Back up 2 spaces so the cursor lands perfectly inside the {}
+          (backward-char 2))
+
+      ;; If the word DOES NOT end in -if or -for, let Emmet do its normal job
+      (call-interactively 'emmet-expand-line)))
+
+
+  ;; Bind TAB to our smart interceptor instead of Emmet directly
+  (define-key emmet-mode-keymap (kbd "TAB") 'my/heex-tab-handler)
+  (define-key emmet-mode-keymap (kbd "<tab>") 'my/heex-tab-handler))
+#+end_src
+
+* 07 Language Server Configuration
+** Eglot Servers and Hooks
+#+begin_src elisp
+(use-package eglot
+  :ensure nil
+  :config
+  ;; Tell Eglot to use the AUR binary name
+  (add-to-list 'eglot-server-programs
+               '(elixir-mode . ("elixir-ls")))
+
+  ;; Tell ElixirLS to look at the current folder for the mix.exs
+  (setq-default eglot-workspace-configuration
+                '((:elixirLS . (:projectDir ".")))))
+
+(add-hook 'elixir-mode-hook #'eglot-ensure)
+(add-hook 'c++-mode-hook #'eglot-ensure)
+#+end_src
+
+* 08 Modern C++ Development and Terminal Tools
+#+begin_src elisp
+
+
+(use-package dape
+  :after general
+  :ensure t
+  :config
+)
+
+(use-package vterm
+  :ensure t
+  :config
+  (setq vterm-max-scrollback 10000))
+
+(use-package vterm-toggle
+  :ensure t
+  :after vterm
+  :config
+)
+
+(use-package project-terminal
+  :ensure (:host github :repo "cowboyd/project-terminal.el")
+  :after (project vterm)
+  :custom
+  (project-terminal-height 0.15)
+  (project-terminal-side 'bottom)
+  (project-terminal-shell 'vterm))
+#+end_src
+
+* 09 Language Server Mouse Navigation
+#+begin_src elisp
+;; 1. DISABLE THE GUI & TAGS FALLBACK GLOBALLY
+(setq use-dialog-box nil)             ; Stop dialog boxes from opening
+(setq xref-prompt-for-identifier nil) ; Use the word under the mouse immediately
+(setq-default xref-backend-functions '(eglot--xref-backend t)) ; Force LSP over Tags
+
+;; 2. Modeline Fix
+(setq doom-modeline-lsp nil)          ; Prevent the modeline from crashing
+
+;; 3. Enable the modern right-click editor context menu
+;;
+;; BUG FIX:
+;; You had:
+;;   (context-menu-menu-mode 1)
+;;
+;; That is wrong. The real Emacs mode is:
+;;   context-menu-mode
+;;
+;; This controls right-click inside editor buffers.
+(when (fboundp 'context-menu-mode)
+  (context-menu-mode 1))
+
+;; 4. Right-click inside editor buffers
+;;
+;; Some configs/packages/Evil states eat mouse-3 or only react to down-mouse-3.
+;; This forces normal editor right-click to open the Emacs context menu.
+(defun my/editor-context-menu (event)
+  "Open the normal Emacs context menu in editor buffers."
+  (interactive "e")
+  (mouse-set-point event)
+  (if (fboundp 'context-menu-open)
+      (context-menu-open)
+    (mouse-menu-major-mode-map event)))
+
+(define-key global-map [mouse-3] #'my/editor-context-menu)
+(define-key global-map [down-mouse-3] #'my/editor-context-menu)
+
+(with-eval-after-load 'evil
+  (define-key evil-normal-state-map [mouse-3] #'my/editor-context-menu)
+  (define-key evil-normal-state-map [down-mouse-3] #'my/editor-context-menu)
+  (define-key evil-insert-state-map [mouse-3] #'my/editor-context-menu)
+  (define-key evil-insert-state-map [down-mouse-3] #'my/editor-context-menu)
+  (define-key evil-visual-state-map [mouse-3] #'my/editor-context-menu)
+  (define-key evil-visual-state-map [down-mouse-3] #'my/editor-context-menu)
+  (define-key evil-motion-state-map [mouse-3] #'my/editor-context-menu)
+  (define-key evil-motion-state-map [down-mouse-3] #'my/editor-context-menu))
+
+;; 5. Mouse Bindings
+(define-key global-map [C-down-mouse-1] 'ignore)
+(define-key global-map [C-mouse-1] 'xref-find-definitions)
+(define-key global-map [C-mouse-3] 'xref-go-back)
+(define-key global-map [C-S-mouse-1] 'eglot-find-declaration)
+#+end_src

@@ -66,17 +66,28 @@
   (setq gc-cons-threshold (* 50 1024 1024)))
 (add-hook 'emacs-startup-hook #'my/display-startup-time)
 
-(let ((conf-org (expand-file-name "config.org" user-emacs-directory))
-      (conf-el  (expand-file-name "config.el"  user-emacs-directory)))
-  (if (file-exists-p conf-org)
+(let ((core-org (expand-file-name "core.org" user-emacs-directory))
+      (core-el  (expand-file-name "core.el"  user-emacs-directory))
+      (ide-org (expand-file-name "ide.org" user-emacs-directory))
+      (ide-el  (expand-file-name "ide.el"  user-emacs-directory))
+      (lang-org (expand-file-name "lang.org" user-emacs-directory))
+      (lang-el  (expand-file-name "lang.el"  user-emacs-directory)))
+  (if (and (file-exists-p core-org) (file-exists-p ide-org) (file-exists-p lang-org))
       (progn
-        ;; Only tangle if config.org is newer than config.el
-        (when (or (not (file-exists-p conf-el))
-                  (file-newer-than-file-p conf-org conf-el))
-          (require 'org)
-          (org-babel-tangle-file conf-org conf-el "elisp"))
-        (load conf-el))
-    (message "No config.org found in %s" user-emacs-directory)))
+        (require 'org)
+        (when (or (not (file-exists-p core-el))
+                  (file-newer-than-file-p core-org core-el))
+          (org-babel-tangle-file core-org core-el "elisp"))
+        (load core-el)
+        (when (or (not (file-exists-p ide-el))
+                  (file-newer-than-file-p ide-org ide-el))
+          (org-babel-tangle-file ide-org ide-el "elisp"))
+        (load ide-el)
+        (when (or (not (file-exists-p lang-el))
+                  (file-newer-than-file-p lang-org lang-el))
+          (org-babel-tangle-file lang-org lang-el "elisp"))
+        (load lang-el))
+    (message "Missing org files in %s" user-emacs-directory)))
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

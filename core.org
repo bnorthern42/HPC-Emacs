@@ -1,0 +1,149 @@
+#+TITLE: Core Configuration
+#+PROPERTY: header-args:elisp :tangle core.el :results silent
+
+* 00 Core Dependencies & Shims
+#+begin_src elisp
+;; ARCH LINUX SHIM: Pacman pre-loads an older 'compat' library.
+;; Corfu demands a new Emacs 31 function called `set-local`.
+;; We polyfill it here to stop the minibuffer crashes.
+(unless (fboundp 'set-local)
+  (defun set-local (variable value)
+    (set (make-local-variable variable) value)))
+
+;; Force Elpaca to grab the latest compat library first
+(use-package compat
+  :ensure t)
+
+(elpaca-wait)
+#+end_src
+
+* 01 Performance & Fundamentals
+As an HPC dev, we want Emacs to stay out of the way. We increase the garbage collection threshold for better responsiveness during LSP indexing.
+
+#+begin_src elisp
+(setq native-comp-async-report-warnings-errors 'silent)
+(setq read-process-output-max (* 8 1024 1024)) ; 8MB (Better for huge C++ LSP responses)
+(setq create-lockfiles nil) ; Stop creating .#files (breaks some makefiles)
+
+;; Garbage Collector Magic Hack automatically adjusts GC threshold.
+(use-package gcmh
+  :ensure t
+  :hook (after-init . gcmh-mode)
+  :config
+  (setq gcmh-high-cons-threshold (* 512 1024 1024) ; 512MB when idle
+        gcmh-low-cons-threshold (* 64 1024 1024)   ; 64MB when typing
+        gcmh-idle-delay 1.5))
+
+(setq fast-but-imprecise-scrolling t)
+(setq redisplay-skip-fontification-on-input t)
+(setq bidi-display-reordering nil)
+(setq bidi-paragraph-direction 'left-to-right)
+#+end_src
+
+* 11 Reloading & Session Restoration
+#+begin_src elisp
+(defun my/reload-config ()
+  (interactive)
+  (let* ((core-org (expand-file-name "core.org" user-emacs-directory))
+         (core-el  (expand-file-name "core.el" user-emacs-directory))
+         (ide-org (expand-file-name "ide.org" user-emacs-directory))
+         (ide-el  (expand-file-name "ide.el" user-emacs-directory))
+         (lang-org (expand-file-name "lang.org" user-emacs-directory))
+         (lang-el  (expand-file-name "lang.el" user-emacs-directory)))
+    (org-babel-tangle-file core-org core-el "elisp")
+    (load-file core-el)
+    (org-babel-tangle-file ide-org ide-el "elisp")
+    (load-file ide-el)
+    (org-babel-tangle-file lang-org lang-el "elisp")
+    (load-file lang-el)
+    (message "Config reloaded!")))
+
+(global-set-key (kbd "C-c r") #'my/reload-config)
+
+(use-package desktop
+  :ensure nil
+  :init (desktop-save-mode 1)
+  :config
+  (setq desktop-path (list user-emacs-directory)
+        desktop-load-locked-desktop t))
+
+;; --- THE MASTER KEYMAP FIX ---
+;; We define ALL keys in one block to stop them from vanishing.
+(with-eval-after-load 'general
+  ;; 1. FIRST: Clear the 't' binding so it can become a prefix
+  (general-unbind :states '(normal insert visual emacs) :keymaps 'override "SPC t")
+
+  ;; 2. THEN: Define the full map
+  (my/leader-keys
+    ;; Files & Search
+    "f"  '(:ignore t :which-key "files")
+    "ff" '(consult-find :which-key "find file")
+    "fs" '(consult-ripgrep :which-key "ripgrep search")
+
+    ;; Buffers & Tabs
+    "b"  '(:ignore t :which-key "buffers")
+    "bb" '(consult-buffer :which-key "switch buffer")
+    "bk" '(kill-current-buffer :which-key "kill buffer")
+    "x"  '(kill-current-buffer :which-key "close tab")
+
+    ;; Projects & Explorer
+    "p"  '(:ignore t :which-key "project")
+    "pp" '(projectile-command-map :which-key "projectile")
+    "e"  '(treemacs :which-key "explorer")
+    "o"  '(imenu-list-smart-toggle :which-key "outline")
+
+    ;; TERMINAL MENU (The new layout)
+    "t"  '(:ignore t :which-key "terminal")
+    "tt" '(project-terminal-toggle :which-key "toggle project terminal")
+    "tT" '(project-terminal-add :which-key "add project terminal")
+    "tf" '(vterm :which-key "vterm standalone")
+
+    ;; Debug & Help
+    "d"  '(:ignore t :which-key "debug")
+    "dd" '(dape :which-key "start")
+    "h"  '(:ignore t :which-key "help")
+    "hr" '(my/reload-config :which-key "reload config")))
+#+end_src
+⊙ session Management
+#+begin_src elisp
+;; --- SESSION PERSISTENCE ---
+(use-package desktop
+  :ensure nil ; Built-in
+  :init
+  (desktop-save-mode 1)
+  :config
+  ;; Automatically save when Emacs is idle
+  (setq desktop-auto-save-timeout 30)
+  ;; Save the desktop in the user-emacs-directory
+  (setq desktop-path (list user-emacs-directory))
+  (setq desktop-dirname user-emacs-directory)
+  (setq desktop-base-file-name "emacs.desktop")
+
+  ;; Prevent Desktop from asking "Active desktop found, use it?" every time
+  (setq desktop-load-locked-desktop t)
+
+  ;; Don't save some temp or utility buffers
+  (setq desktop-modes-not-to-save
+        '(tags-table-mode dired-mode vterm-mode help-mode magit-mode)))
+
+;; --- RECENT FILES PERSISTENCE ---
+(use-package recentf
+  :ensure nil ; Built-in
+  :init
+  (recentf-mode 1)
+  :config
+  (setq recentf-max-saved-items 200
+        recentf-max-menu-items 15))
+
+;; --- MINIBUFFER HISTORY PERSISTENCE ---
+(use-package savehist
+  :ensure nil ; Built-in
+  :init
+  (savehist-mode 1))
+
+;; --- CURSOR POSITION PERSISTENCE ---
+(use-package saveplace
+  :ensure nil ; Built-in
+  :init
+  (save-place-mode 1))
+#+end_src

@@ -1,8 +1,9 @@
 # Agent Instructions and Skills
 
 ## Repository Guidelines
-- **Literate Configuration:** This repository uses a literate Emacs configuration via Org mode. The main configuration is in `config.org`.
-- **Do not edit `config.el` directly:** Always edit `config.org`. The `init.el` or Emacs itself handles tangling `config.org` into `config.el`.
+- **Literate Configuration:** This repository uses a literate Emacs configuration via Org mode. The main configuration is split into `core.org`, `ide.org`, and `lang.org`.
+- **Do not edit `.el` files directly:** Always edit `.org` files. The `init.el` or Emacs itself handles tangling `.org` files into `.el` files.
+- **Exclusive File Ownership:** To support concurrent Jules agents, each component file (`core.org`, `ide.org`, `lang.org`) should only be modified by the agent assigned to that domain. Ensure stable interfaces between the components.
 
 ## Core Skills & Knowledge
 
