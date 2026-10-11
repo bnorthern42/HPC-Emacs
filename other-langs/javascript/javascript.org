@@ -1,0 +1,71 @@
+#+TITLE: JavaScript Language Support
+#+PROPERTY: header-args:elisp :tangle javascript.el :results silent
+
+* JavaScript Support
+** Core Package & Language Server
+Setup basic JavaScript mode, formatting, and connect to Eglot for LSP support.
+
+#+begin_src elisp
+;;; javascript.el --- JavaScript support -*- lexical-binding: t; -*-
+
+;; 1. Core JS Support
+(use-package js2-mode
+  :ensure t
+  :mode "\\.js\\'"
+  :mode "\\.jsx\\'"
+  :interpreter "node"
+  :config
+  (setq js-indent-level 2
+        js2-basic-offset 2
+        js2-strict-missing-semi-warning nil
+        js2-strict-trailing-comma-warning nil))
+
+;; 2. LSP Integration
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '((js2-mode js-mode) . ("typescript-language-server" "--stdio"))))
+
+(add-hook 'js2-mode-hook #'eglot-ensure)
+
+;; 3. Formatter & Linter
+(use-package prettier-js
+  :ensure t
+  :hook (js2-mode . prettier-js-mode))
+
+(use-package flycheck
+  :ensure t)
+
+(with-eval-after-load 'flycheck
+  (setq-default flycheck-javascript-eslint-executable "eslint"))
+
+;; 4. Testing, Package Managers & Task runners
+(use-package npm-mode
+  :ensure t
+  :hook (js2-mode . npm-mode))
+
+;; Add npm/pnpm/bun to project root detection
+(with-eval-after-load 'project
+  (add-to-list 'project-vc-extra-root-markers "package.json")
+  (add-to-list 'project-vc-extra-root-markers "pnpm-workspace.yaml")
+  (add-to-list 'project-vc-extra-root-markers "bun.lockb"))
+
+(with-eval-after-load 'projectile
+  (add-to-list 'projectile-project-root-files "package.json")
+  (add-to-list 'projectile-project-root-files "pnpm-workspace.yaml")
+  (add-to-list 'projectile-project-root-files "bun.lockb"))
+
+;; 5. Keybindings for JS ecosystem
+(with-eval-after-load 'general
+  (with-eval-after-load 'js2-mode
+    (my/leader-keys
+      :keymaps 'js2-mode-map
+      "cj"  '(:ignore t :which-key "javascript")
+      "cj n" '(npm-mode-npm-run :which-key "npm run")
+      "cj t" '(npm-mode-npm-test :which-key "npm test")
+      "cj i" '(npm-mode-npm-install :which-key "npm install")
+      "cj p" '(npm-mode-npm-install-save :which-key "npm install save")
+      "cj d" '(npm-mode-npm-run-debug :which-key "npm debug"))))
+
+(provide 'javascript)
+;;; javascript.el ends here
+#+end_src
