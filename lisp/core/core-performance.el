@@ -1,0 +1,6 @@
+(setq gc-cons-threshold (* 512 1024 1024))
+(setq read-process-output-max (* 8 1024 1024))
+(setq fast-but-imprecise-scrolling t)
+(setq redisplay-skip-fontification-on-input t)
+(setq native-comp-async-report-warnings-errors 'silent)
+(setq package-enable-at-startup nil)
