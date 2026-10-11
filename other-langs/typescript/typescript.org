@@ -1,0 +1,85 @@
+#+TITLE: TypeScript Language Support
+#+PROPERTY: header-args:elisp :tangle typescript.el :results silent
+
+* TypeScript Support
+** Core Package & Language Server
+Setup basic TypeScript mode, TSX support, formatting, and connect to Eglot for LSP support.
+
+#+begin_src elisp
+;;; typescript.el --- TypeScript support -*- lexical-binding: t; -*-
+
+;; 1. Core TS Support
+(use-package typescript-mode
+  :ensure t
+  :mode "\\.ts\\'"
+  :config
+  (setq typescript-indent-level 2))
+
+;; TSX support via web-mode
+(use-package web-mode
+  :ensure t
+  :mode "\\.tsx\\'"
+  :config
+  (setq web-mode-markup-indent-offset 2
+        web-mode-css-indent-offset 2
+        web-mode-code-indent-offset 2))
+
+;; 2. LSP Integration
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '((typescript-mode web-mode) . ("typescript-language-server" "--stdio"))))
+
+(add-hook 'typescript-mode-hook #'eglot-ensure)
+(add-hook 'web-mode-hook
+          (lambda ()
+            (when (string-equal "tsx" (file-name-extension buffer-file-name))
+              (eglot-ensure))))
+
+;; 3. Formatter & Linter
+(use-package prettier-js
+  :ensure t
+  :hook (typescript-mode . prettier-js-mode)
+  :hook (web-mode . (lambda ()
+                      (when (string-equal "tsx" (file-name-extension buffer-file-name))
+                        (prettier-js-mode 1)))))
+
+(use-package flycheck
+  :ensure t)
+
+(with-eval-after-load 'flycheck
+  (setq-default flycheck-typescript-tslint-executable "eslint"))
+
+;; 4. Testing, Package Managers & Task runners
+;; Assuming npm-mode is also helpful for TS projects
+(use-package npm-mode
+  :ensure t
+  :hook (typescript-mode . npm-mode)
+  :hook (web-mode . (lambda ()
+                      (when (string-equal "tsx" (file-name-extension buffer-file-name))
+                        (npm-mode 1)))))
+
+;; Add npm/pnpm/bun to project root detection
+(with-eval-after-load 'project
+  (add-to-list 'project-vc-extra-root-markers "package.json")
+  (add-to-list 'project-vc-extra-root-markers "pnpm-workspace.yaml")
+  (add-to-list 'project-vc-extra-root-markers "bun.lockb"))
+
+(with-eval-after-load 'projectile
+  (add-to-list 'projectile-project-root-files "package.json")
+  (add-to-list 'projectile-project-root-files "pnpm-workspace.yaml")
+  (add-to-list 'projectile-project-root-files "bun.lockb"))
+
+;; 5. Keybindings for TS ecosystem
+(with-eval-after-load 'general
+  (with-eval-after-load 'typescript-mode
+    (my/leader-keys
+      :keymaps 'typescript-mode-map
+      "ct"  '(:ignore t :which-key "typescript")
+      "ct r" '(npm-mode-npm-run :which-key "npm run")
+      "ct t" '(npm-mode-npm-test :which-key "npm test")
+      "ct i" '(npm-mode-npm-install :which-key "npm install")
+      "ct d" '(npm-mode-npm-run-debug :which-key "npm debug"))))
+
+(provide 'typescript)
+;;; typescript.el ends here
+#+end_src
