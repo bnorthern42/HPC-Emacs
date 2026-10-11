@@ -649,3 +649,159 @@ As an HPC dev, we want Emacs to stay out of the way. We increase the garbage col
   :init
   (save-place-mode 1))
 #+end_src
+
+* 12 Other Languages Module System
+This declarative module system handles automatic discovery, dependency declarations, lazy loading, and interactive management of languages outside the core workflows.
+
+#+begin_src elisp
+(defvar other-langs-dir (expand-file-name "other-langs/" user-emacs-directory)
+  "Directory containing other language module definitions.")
+
+(defvar other-langs-state-file (expand-file-name "other-langs-state.el" user-emacs-directory)
+  "File storing the list of enabled other-langs modules.")
+
+(defvar other-langs-enabled-modules nil
+  "List of enabled other language modules (symbols).")
+
+(defvar other-langs-registry (make-hash-table :test 'eq)
+  "Registry of defined other language modules.")
+
+;; Ensure directory exists
+(unless (file-exists-p other-langs-dir)
+  (make-directory other-langs-dir t))
+
+;; Load state
+(defun other-langs--load-state ()
+  (if (file-exists-p other-langs-state-file)
+      (with-temp-buffer
+        (insert-file-contents other-langs-state-file)
+        (goto-char (point-min))
+        (setq other-langs-enabled-modules
+              (condition-case nil
+                  (read (current-buffer))
+                (error nil))))
+    (setq other-langs-enabled-modules nil)))
+
+;; Save state
+(defun other-langs--save-state ()
+  (with-temp-file other-langs-state-file
+    (insert ";; Auto-generated file. Do not edit.\n")
+    (let ((print-length nil)
+          (print-level nil))
+      (prin1 other-langs-enabled-modules (current-buffer)))
+    (insert "\n")))
+
+;; Tool check
+(defun other-langs--tools-available-p (tools)
+  (let ((missing nil))
+    (dolist (tool tools)
+      (unless (executable-find tool)
+        (push tool missing)))
+    (if missing
+        (progn
+          (message "other-langs: Missing tools: %s" (mapconcat 'identity missing ", "))
+          nil)
+      t)))
+
+;; Declarative macro
+(defmacro other-lang-def (name &rest kwargs)
+  "Define a language module.
+KWARGS can include:
+  :tools (list of executables required)
+  :packages (list of elpaca packages to install)
+  :modes (list of major modes this applies to, for lazy loading)
+  :init (code to run immediately if enabled)
+  :config (code to run after packages/modes are loaded)"
+  `(progn
+     (puthash ',name ',kwargs other-langs-registry)
+     ',name))
+
+;; Evaluate a module
+(defun other-langs--activate-module (name kwargs)
+  (let ((tools (plist-get kwargs :tools))
+        (packages (plist-get kwargs :packages))
+        (modes (plist-get kwargs :modes))
+        (init (plist-get kwargs :init))
+        (config (plist-get kwargs :config)))
+    (when (or (null tools) (other-langs--tools-available-p tools))
+      (when init
+        (eval init t))
+      (let ((setup-fn
+             (lambda ()
+               (dolist (pkg packages)
+                 (eval `(elpaca ,pkg) t))
+               (when config
+                 (eval `(elpaca nil ,config) t)))))
+        (if modes
+            (let ((loader-sym (intern (format "other-langs--load-%s" name))))
+              (fset loader-sym
+                    (lambda ()
+                      (dolist (mode modes)
+                        (remove-hook (intern (format "%s-hook" mode)) loader-sym))
+                      (funcall setup-fn)))
+              (dolist (mode modes)
+                (add-hook (intern (format "%s-hook" mode)) loader-sym)))
+          (funcall setup-fn))))))
+
+(defun other-langs-discover-and-activate ()
+  "Discover definitions and activate enabled modules."
+  (other-langs--load-state)
+  ;; Discover
+  (dolist (file (directory-files other-langs-dir t "\\.el$"))
+    (load file t t))
+  ;; Activate
+  (dolist (mod other-langs-enabled-modules)
+    (let ((kwargs (gethash mod other-langs-registry)))
+      (when kwargs
+        (other-langs--activate-module mod kwargs)))))
+
+;; Interactive commands
+(defun other-langs-enable (name)
+  "Enable an other-langs module."
+  (interactive
+   (list (intern (completing-read "Enable module: "
+                                  (let ((res nil))
+                                    (maphash (lambda (k _v)
+                                               (unless (memq k other-langs-enabled-modules)
+                                                 (push (symbol-name k) res)))
+                                             other-langs-registry)
+                                    res)
+                                  nil t))))
+  (unless (memq name other-langs-enabled-modules)
+    (push name other-langs-enabled-modules)
+    (other-langs--save-state)
+    (message "Enabled module %s. Please restart Emacs to fully activate." name)))
+
+(defun other-langs-disable (name)
+  "Disable an other-langs module."
+  (interactive
+   (list (intern (completing-read "Disable module: "
+                                  (mapcar 'symbol-name other-langs-enabled-modules)
+                                  nil t))))
+  (when (memq name other-langs-enabled-modules)
+    (setq other-langs-enabled-modules (delq name other-langs-enabled-modules))
+    (other-langs--save-state)
+    (message "Disabled module %s. Please restart Emacs to fully deactivate." name)))
+
+(defun other-langs-manage ()
+  "Interactive management command for other-langs modules."
+  (interactive)
+  (let* ((modules (let ((res nil))
+                    (maphash (lambda (k _v) (push (symbol-name k) res)) other-langs-registry)
+                    res))
+         (selection (completing-read "Toggle module: "
+                                     (mapcar (lambda (m)
+                                               (let ((sym (intern m)))
+                                                 (if (memq sym other-langs-enabled-modules)
+                                                     (concat m " (enabled)")
+                                                   (concat m " (disabled)"))))
+                                             modules)
+                                     nil t))
+         (mod-name (intern (car (split-string selection " ")))))
+    (if (memq mod-name other-langs-enabled-modules)
+        (other-langs-disable mod-name)
+      (other-langs-enable mod-name))))
+
+;; Finally, kick off the discovery
+(other-langs-discover-and-activate)
+#+end_src
