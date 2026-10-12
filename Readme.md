@@ -117,6 +117,16 @@ Perfect for MPI launch scripts, Meson builds, SLURM jobs, and rapid compile-test
 
 ---
 
+## REST & API Tooling
+
+- `verb` (GitHub: federicotdn/verb) provides an HTTP client inside Org mode documents.
+- Top menu bar integration: **REST** menu with **Open REST Page**, **Send Request**, and **Export to cURL**, plus **Tools -> REST Client (Open Page)**.
+- Scratch page command: `M-x my/verb-open-rest-page` (creates or focuses `*REST Client*` with starter GET/POST templates and `:verb:` tags).
+- Leader shortcut: `SPC ro` (open REST page).
+- Org mode commands: `C-c C-r` prefix (e.g. `C-c C-r C-r` or Org `C-c C-c` to send request on heading).
+
+---
+
 ## Completion & Search
 
 Modern vertical completion stack:

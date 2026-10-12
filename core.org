@@ -104,6 +104,10 @@ As an HPC dev, we want Emacs to stay out of the way. We increase the garbage col
     "tT" '(project-terminal-add :which-key "add project terminal")
     "tf" '(vterm :which-key "vterm standalone")
 
+    ;; REST Client
+    "r"  '(:ignore t :which-key "rest")
+    "ro" '(my/verb-open-rest-page :which-key "open rest page")
+
     ;; Debug & Help
     "d"  '(:ignore t :which-key "debug")
     "dd" '(dape :which-key "start")

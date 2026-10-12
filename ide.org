@@ -311,3 +311,60 @@
   :ensure t
   :init (marginalia-mode 1))
 #+end_src
+
+* 12 REST Client (Verb)
+HTTP client and API tooling powered by [[https://github.com/federicotdn/verb][Verb]] using Org mode.
+
+#+begin_src elisp
+(use-package verb
+  :ensure (verb :host github :repo "federicotdn/verb")
+  :after org
+  :config
+  (define-key org-mode-map (kbd "C-c C-r") verb-command-map))
+
+(defun my/verb-open-rest-page ()
+  "Open a REST client page powered by Verb in Org mode."
+  (interactive)
+  (require 'verb nil t)
+  (let ((buf (get-buffer-create "*REST Client*")))
+    (with-current-buffer buf
+      (unless (derived-mode-p 'org-mode)
+        (org-mode))
+      (when (fboundp 'verb-mode)
+        (verb-mode 1))
+      (when (= (buffer-size) 0)
+        (insert "#+TITLE: REST Client (Verb)\n"
+                "# Instructions: Place cursor on a request heading and press C-c C-r C-r (or C-c C-c) to send.\n\n"
+                "* Sample GET Request :verb:\n"
+                "get https://httpbin.org/get\n\n"
+                "* Sample POST JSON Request :verb:\n"
+                "post https://httpbin.org/post\n"
+                "Content-Type: application/json\n\n"
+                "{\n"
+                "  \"message\": \"Hello from Verb!\"\n"
+                "}\n")
+        (goto-char (point-min))))
+    (pop-to-buffer-same-window buf)))
+
+;; Top menu bar integration: "REST" menu
+(easy-menu-define my/rest-top-menu global-map "REST Client Menu"
+  '("REST"
+    ["Open REST Page" my/verb-open-rest-page :help "Open a REST client scratch buffer powered by Verb"]
+    "--"
+    ["Send Request" verb-send-request-on-point-display
+     :help "Send HTTP request on current heading"
+     :active (and (bound-and-true-p verb-mode) (derived-mode-p 'org-mode))]
+    ["Send Request & Switch" verb-send-request-on-point-other-window
+     :help "Send request and switch to response buffer"
+     :active (and (bound-and-true-p verb-mode) (derived-mode-p 'org-mode))]
+    ["Export to cURL" verb-export-request-on-point-curl
+     :help "Export request on current heading as curl command"
+     :active (and (bound-and-true-p verb-mode) (derived-mode-p 'org-mode))]))
+
+;; Also add an entry in the Tools menu for convenience
+(with-eval-after-load 'menu-bar
+  (easy-menu-add-item menu-bar-tools-menu nil
+    ["REST Client (Open Page)" my/verb-open-rest-page
+     :help "Open a REST client scratch buffer powered by Verb"]))
+#+end_src
+
