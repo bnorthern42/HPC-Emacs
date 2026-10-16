@@ -161,15 +161,6 @@
 (setq doom-modeline-lsp nil)          ; Prevent the modeline from crashing
 
 ;; 3. Enable the modern right-click editor context menu
-;;
-;; BUG FIX:
-;; You had:
-;;   (context-menu-menu-mode 1)
-;;
-;; That is wrong. The real Emacs mode is:
-;;   context-menu-mode
-;;
-;; This controls right-click inside editor buffers.
 (when (fboundp 'context-menu-mode)
   (context-menu-mode 1))
 
