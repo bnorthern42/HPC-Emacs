@@ -146,7 +146,9 @@
 (defun my/jump-to-visible-buffer (orig-fn buffer-or-name &rest args)
   (let ((window (get-buffer-window buffer-or-name 0)))
     (if window
-        (select-window window) ;; Jump to the existing window
+        (progn
+          (select-window window) ;; Jump to the existing window
+          (window-buffer window))
       (apply orig-fn buffer-or-name args)))) ;; Otherwise, open it normally
 
 (advice-add 'switch-to-buffer :around #'my/jump-to-visible-buffer)
