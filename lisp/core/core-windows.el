@@ -19,22 +19,12 @@
     (switch-to-buffer (other-buffer (current-buffer) t))))
 
 ;; Buffer Reuse
-(advice-remove 'switch-to-buffer #'my/jump-to-visible-buffer)
-
 (setq switch-to-buffer-obey-display-actions t)
 
 (add-to-list 'display-buffer-alist
              '(".*"
                (display-buffer-reuse-window display-buffer-same-window)
                (reusable-frames . visible)))
-
-(defun my/jump-to-visible-buffer (orig-fn buffer-or-name &rest args)
-  (let ((window (get-buffer-window buffer-or-name 0)))
-    (if window
-        (progn
-          (select-window window)
-          (window-buffer window))
-      (apply orig-fn buffer-or-name args))))
 
 ;; Centaur Tabs
 (defun my/centaur-tabs-kill-on-side (direction)

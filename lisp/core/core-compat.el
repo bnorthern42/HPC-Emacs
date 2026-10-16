@@ -14,17 +14,6 @@
 ;; Disabling this in modern Emacs causes rendering corruption.
 (setq bidi-display-reordering t)
 
-;; 4. Fix Bugs & Unsafe Advice: switch-to-buffer
-;; Advising switch-to-buffer is unsafe and the existing advice violates its return value API.
-;; We remove the advice and use the built-in display-buffer-alist mechanisms to achieve
-;; the exact same "jump to visible" behavior natively and safely.
-(advice-remove 'switch-to-buffer #'my/jump-to-visible-buffer)
-(setq switch-to-buffer-obey-display-actions t)
-(add-to-list 'display-buffer-alist
-             '(".*"
-               (display-buffer-reuse-window display-buffer-same-window)
-               (reusable-frames . visible)))
-
 ;; 5. Fix Bugs: context-menu-open arity error
 ;; Modern Emacs requires the event argument to be passed to context-menu-open.
 (defun my/editor-context-menu (event)
