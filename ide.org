@@ -143,13 +143,12 @@
 ;; 2. THE NAVIGATION FIX: Stop tabs/buffers from opening twice
 ;; If you click a tab or search a buffer that is already visible in another window,
 ;; force Emacs to jump your cursor to that window instead of duplicating it here.
-(defun my/jump-to-visible-buffer (orig-fn buffer-or-name &rest args)
-  (let ((window (get-buffer-window buffer-or-name 0)))
-    (if window
-        (select-window window) ;; Jump to the existing window
-      (apply orig-fn buffer-or-name args)))) ;; Otherwise, open it normally
+(setq switch-to-buffer-obey-display-actions t)
 
-(advice-add 'switch-to-buffer :around #'my/jump-to-visible-buffer)
+(add-to-list 'display-buffer-alist
+             '(".*"
+               (display-buffer-reuse-window display-buffer-same-window)
+               (reusable-frames . visible)))
 
 #+end_src
 
