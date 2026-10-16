@@ -192,3 +192,37 @@ This configuration provides:
 It is the result of deliberate engineering choices that favor speed, correctness, and maintainability over feature creep.
 
 If your daily work involves template metaprogramming, MPI deadlocks, Phoenix LiveView, or HEEx templates, this setup is engineered to stay out of your way while giving you every modern editor advantage.
+## User Documentation
+
+### Daily Usage & Keybindings
+This configuration heavily relies on `evil` for vim-like modal editing, and `general.el` with `my/leader-keys` (`SPC` or `C-SPC`) as the primary leader key.
+
+**Basic Navigation**
+- `SPC ff` : Find file (using Vertico/Consult)
+- `SPC fs` : Search across the project with ripgrep
+- `SPC bb` : Switch buffer
+- `SPC bk` or `SPC x` : Kill buffer/tab
+- `SPC o`  : Toggle imenu list (outline)
+
+**Project Management**
+Project root is automatically detected via `mix.exs`, `.project`, `CMakeLists.txt`, or standard git boundaries.
+- Uses `projectile` for core project features. Search across the project using `SPC fs`.
+- Uses `project-terminal` for a quick bottom panel shell. Toggle with `SPC tt`, add a new one with `SPC tT`.
+
+**Development & LSP**
+- Eglot runs automatically for supported languages (`c++-mode`, `elixir-mode`).
+- `C-mouse-1` : Go to definition
+- `C-mouse-3` : Go back
+- `C-S-mouse-1` : Go to declaration
+
+**Debugging & REST**
+- Start debugger commands with `SPC d` (uses Dape for debugging).
+- Open REST client with `SPC ro` (uses Verb for inline HTTP requests).
+
+**Session & Reloading**
+- `SPC hr` : Reloads the configuration (tangles `.org` files and loads new `.el` files).
+- Sessions are saved and restored automatically (files, cursor positions, minibuffer history).
+
+## License
+
+This software is released into the public domain under the [Unlicense](http://unlicense.org/). See the `LICENSE` file for more details.
