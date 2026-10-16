@@ -27,15 +27,6 @@ Can accept an optional SCOPE argument (e.g., 'at-point).")
 (defvar ide-tests-adapter-show-results-fn nil
   "Function to show the results of the last test run.")
 
-(defun ide-tests-register-adapter (name &rest kwargs)
-  "Register a test adapter with NAME.
-KWARGS can include :discover, :run, :debug, and :show-results."
-  (setq ide-tests-current-adapter name
-        ide-tests-adapter-discover-fn (plist-get kwargs :discover)
-        ide-tests-adapter-run-fn (plist-get kwargs :run)
-        ide-tests-adapter-debug-fn (plist-get kwargs :debug)
-        ide-tests-adapter-show-results-fn (plist-get kwargs :show-results)))
-
 (defun ide-tests-discover ()
   "Discover tests using the current adapter."
   (interactive)
