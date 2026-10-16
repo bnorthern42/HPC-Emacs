@@ -182,7 +182,7 @@
   (interactive "e")
   (mouse-set-point event)
   (if (fboundp 'context-menu-open)
-      (context-menu-open)
+      (context-menu-open event)
     (mouse-menu-major-mode-map event)))
 
 (define-key global-map [mouse-3] #'my/editor-context-menu)
