@@ -125,13 +125,13 @@
     "Split horizontally and show the previous buffer."
     (interactive)
     (evil-window-split)
-    (switch-to-buffer (other-buffer (current-buffer) t)))
+    (set-window-buffer nil (other-buffer (current-buffer) t)))
 
   (defun my/evil-vsplit-unique ()
     "Split vertically and show the previous buffer."
     (interactive)
     (evil-window-vsplit)
-    (switch-to-buffer (other-buffer (current-buffer) t)))
+    (set-window-buffer nil (other-buffer (current-buffer) t)))
 
   ;; Override the default Evil split bindings
   (define-key evil-window-map (kbd "s") 'my/evil-split-unique)
